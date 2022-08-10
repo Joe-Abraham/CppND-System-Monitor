@@ -272,21 +272,11 @@ string LinuxParser::Command(int pid) {
 
 // Read and return the memory used by a process
 string LinuxParser::Ram(int pid) {
-  std::ifstream f(LinuxParser::kProcDirectory + to_string(pid) +
-                  LinuxParser::kStatFilename);
-  string line;
-  while (std::getline(f, line)) {
-    std::istringstream s(line);
-    string title, usedMem;
-    s >> title >> usedMem;
-    if (title == "VmSize:") {
-      float mb = std::stof(usedMem);
-      mb = mb / 1024;
-      int res = (int)std::round(mb);
-      return std::to_string(res);
-    }
-  }
-  return string();
+  string filename = kProcDirectory + std::to_string(pid) + kStatusFilename;
+  long memKb = std::stol(OpenAndExtractWord(filename, "VmRSS:"));
+  float memMb = memKb / 1024;
+  long memTrunc = std::trunc(memMb);
+  return std::to_string(memTrunc);
 }
 
 // Read and return the user ID associated with a process
