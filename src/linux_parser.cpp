@@ -13,8 +13,17 @@ using std::string;
 using std::to_string;
 using std::vector;
 
+/**
+ * @brief Open the required file and extract the required words
+ *
+ * @param file        File that needs to be opened
+ * @param wanted_key  Key we are looking for
+ * @param first_line  Whether the first line needs to be taken
+ *                    to consideration or not!
+ * @return array of words
+ */
 vector<string> OpenAndExtractWord(string file, string wanted_key,
-                               bool first_line = false) {
+                                  bool first_line = false) {
   string key, line, word;
   const int word_limit = 25;  // word_limit
   vector<string> words(word_limit, "0");
