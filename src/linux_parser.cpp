@@ -209,6 +209,15 @@ float LinuxParser::CpuUtilization() {
   return 0;
 }
 
+float LinuxParser::CpuUtilization(int pid) {
+  float activeJiffies = LinuxParser::ActiveJiffies(pid);
+  long uptime = LinuxParser::UpTime(pid);
+
+  if (uptime != 0) {
+    return activeJiffies / (uptime * sysconf(_SC_CLK_TCK));
+  }
+  return 0;
+}
 // Read and return the total number of processes
 int LinuxParser::TotalProcesses() {
   return std::stoi(
