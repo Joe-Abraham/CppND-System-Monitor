@@ -14,7 +14,8 @@ using std::to_string;
 using std::vector;
 
 /**
- * @brief Open the required file and extract the required words
+ * @brief Helper function : Open the required file and extract the required
+ * words
  *
  * @param file        File that needs to be opened
  * @param wanted_key  Key we are looking for
@@ -22,8 +23,8 @@ using std::vector;
  *                    to consideration or not!
  * @return array of words
  */
-vector<string> OpenAndExtractWord(string file, string wanted_key,
-                                  bool first_line = false) {
+vector<string> OpenAndExtractWords(string file, string wanted_key,
+                                   bool first_line = false) {
   string key, line, word;
   const int word_limit = 25;  // word_limit
   vector<string> words(word_limit, "0");
@@ -56,6 +57,27 @@ vector<string> OpenAndExtractWord(string file, string wanted_key,
     filestream.close();
   }
   return words;
+}
+
+/**
+ * @brief Helper function : returns word correspoing to the
+ *        wanted key.
+ *
+ * @param file
+ * @param wanted_key
+ * @return string
+ */
+string OpenAndExtractWord(string file, string wanted_key) {
+  string key, line, value;
+  std::ifstream filestream(file);
+
+  while (std::getline(filestream, line)) {
+    std::istringstream sstream(line);
+    sstream >> key >> value;
+
+    if (key == wanted_key) return value;
+  }
+  return "0";
 }
 
 // DONE: An example of how to read data from the filesystem
@@ -161,7 +183,7 @@ long LinuxParser::Jiffies() {
 // Read and return the number of active jiffies for a PID
 long LinuxParser::ActiveJiffies(int pid) {
   string filename = kProcDirectory + std::to_string(pid) + kStatFilename;
-  vector<string> words = OpenAndExtractWord(filename, "", true);
+  vector<string> words = OpenAndExtractWords(filename, "", true);
   return std::stol(words[13]) + std::stol(words[14]) + std::stol(words[15]) +
          std::stol(words[16]);
 }
@@ -170,7 +192,7 @@ long LinuxParser::ActiveJiffies(int pid) {
 long LinuxParser::ActiveJiffies() {
   // ActiveJiffies = user + nice + system + irq + softirq + steal
   vector<string> jiffies =
-      OpenAndExtractWord(kProcDirectory + kStatFilename, "cpu");
+      OpenAndExtractWords(kProcDirectory + kStatFilename, "cpu");
   long user = std::stol(jiffies[1]);
   long nice = std::stol(jiffies[2]);
   long system = std::stol(jiffies[3]);
@@ -183,7 +205,7 @@ long LinuxParser::ActiveJiffies() {
 // Read and return the number of idle jiffies for the system
 long LinuxParser::IdleJiffies() {
   vector<string> idleJiffies =
-      OpenAndExtractWord(kProcDirectory + kStatFilename, "cpu");
+      OpenAndExtractWords(kProcDirectory + kStatFilename, "cpu");
   long idle = std::stol(idleJiffies[4]);
   long iowait = std::stol(idleJiffies[5]);
   return idle + iowait;
@@ -235,22 +257,67 @@ int LinuxParser::RunningProcesses() {
   return 0;
 }
 
-// TODO: Read and return the command associated with a process
-// REMOVE: [[maybe_unused]] once you define the function
-string LinuxParser::Command(int pid [[maybe_unused]]) { return string(); }
+// Read and return the command associated with a process
+string LinuxParser::Command(int pid) {
+  string cmd;
+  std::ifstream filestream(kProcDirectory + std::to_string(pid) +
+                           kCmdlineFilename);
 
-// TODO: Read and return the memory used by a process
-// REMOVE: [[maybe_unused]] once you define the function
-string LinuxParser::Ram(int pid [[maybe_unused]]) { return string(); }
+  if (filestream.is_open()) {
+    std::getline(filestream, cmd);
+    filestream.close();
+  }
+  return cmd;
+}
 
-// TODO: Read and return the user ID associated with a process
-// REMOVE: [[maybe_unused]] once you define the function
-string LinuxParser::Uid(int pid [[maybe_unused]]) { return string(); }
+// Read and return the memory used by a process
+string LinuxParser::Ram(int pid) {
+  std::ifstream f(LinuxParser::kProcDirectory + to_string(pid) +
+                  LinuxParser::kStatFilename);
+  string line;
+  while (std::getline(f, line)) {
+    std::istringstream s(line);
+    string title, usedMem;
+    s >> title >> usedMem;
+    if (title == "VmSize:") {
+      float mb = std::stof(usedMem);
+      mb = mb / 1024;
+      int res = (int)std::round(mb);
+      return std::to_string(res);
+    }
+  }
+  return string();
+}
 
-// TODO: Read and return the user associated with a process
-// REMOVE: [[maybe_unused]] once you define the function
-string LinuxParser::User(int pid [[maybe_unused]]) { return string(); }
+// Read and return the user ID associated with a process
+string LinuxParser::Uid(int pid) {
+  string filename = kProcDirectory + std::to_string(pid) + kStatusFilename;
+  return OpenAndExtractWord(filename, "Uid:");
+}
 
-// TODO: Read and return the uptime of a process
-// REMOVE: [[maybe_unused]] once you define the function
-long LinuxParser::UpTime(int pid [[maybe_unused]]) { return 0; }
+// Read and return the user associated with a process
+string LinuxParser::User(int pid) {
+  string uid = LinuxParser::Uid(pid);
+  string user, line, pwd, userID;
+  std::ifstream filestream(kPasswordPath);
+
+  if (filestream.is_open()) {
+    while (std::getline(filestream, line)) {
+      std::replace(line.begin(), line.end(), ':', ' ');
+      std::istringstream linestream(line);
+      linestream >> user >> pwd >> userID;
+      if (userID == uid) break;
+    }
+    filestream.close();
+  }
+  return user;
+}
+
+// Read and return the uptime of a process
+long LinuxParser::UpTime(int pid) {
+  string pid_string = std::to_string(pid);
+  string filename = kProcDirectory + pid_string + kStatFilename;
+  long starttime =
+      std::stol(OpenAndExtractWords(filename, "", true)[21]);  // in jiffies
+  return LinuxParser::UpTime() - (starttime / sysconf(_SC_CLK_TCK));
+}
