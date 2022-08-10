@@ -1,15 +1,23 @@
 #include "format.h"
 
+#include <iomanip>
+#include <sstream>
 #include <string>
-
 using std::string;
 using std::to_string;
 
-string Format::ElapsedTime(long seconds) {
-  const int hour = seconds / 3600;
-  const int minute = (seconds / 60) % 60;
-  const int second = seconds % 60;
+string PadZeros(long n, int k) {
+  std::ostringstream ss;
+  ss << std::setw(k) << std::setfill('0') << n;
+  return ss.str();
+}
 
-  return string(to_string(hour) + ":" + to_string(minute) + ":" +
-                to_string(second));
+string Format::ElapsedTime(long seconds) {
+  long h, m, s;
+
+  h = seconds / 3600;
+  m = (seconds - h * 3600) / 60;
+  s = (seconds - h * 3600 - m * 60);
+
+  return PadZeros(h, 2) + ":" + PadZeros(m, 2) + ":" + PadZeros(s, 2);
 }
