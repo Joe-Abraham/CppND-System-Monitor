@@ -138,23 +138,9 @@ vector<int> LinuxParser::Pids() {
 
 // Read and return the system memory utilization
 float LinuxParser::MemoryUtilization() {
-  std::ifstream stream(kProcDirectory + kMeminfoFilename);
-  string title, count, unit;
-  string line;
-  float memTotal, memAvailable;
-
-  if (stream.is_open()) {
-    while (std::getline(stream, line)) {
-      std::istringstream linestream(line);
-      linestream >> title >> count >> unit;
-      if (title == "MemTotal:") {
-        memTotal = std::stof(count);
-      }
-      if (title == "MemFree:") {
-        memAvailable = std::stof(count);
-      }
-    }
-  }
+  string file = kProcDirectory + kMeminfoFilename;
+  float memTotal = std::stof(OpenAndExtractWord(file, "MemTotal:"));
+  float memAvailable = std::stof(OpenAndExtractWord(file, "MemFree:"));
 
   return (memTotal - memAvailable) / memTotal;
 }
@@ -225,36 +211,14 @@ float LinuxParser::CpuUtilization() {
 
 // Read and return the total number of processes
 int LinuxParser::TotalProcesses() {
-  string line, key, value;
-  std::ifstream stream(kProcDirectory + kStatFilename);
-  if (stream.is_open()) {
-    while (getline(stream, line)) {
-      std::istringstream stream(line);
-      while (stream >> key >> value) {
-        if (key == "processes") {
-          return stoi(value);
-        }
-      }
-    }
-  }
-  return 0;
+  return std::stoi(
+      OpenAndExtractWord(kProcDirectory + kStatFilename, "processes"));
 }
 
 // Read and return the number of running processes
 int LinuxParser::RunningProcesses() {
-  string line, key, value;
-  std::ifstream stream(kProcDirectory + kStatFilename);
-  if (stream.is_open()) {
-    while (getline(stream, line)) {
-      std::istringstream stream(line);
-      while (stream >> key >> value) {
-        if (key == "procs_running") {
-          return stoi(value);
-        }
-      }
-    }
-  }
-  return 0;
+  return std::stoi(
+      OpenAndExtractWord(kProcDirectory + kStatFilename, "procs_running"));
 }
 
 // Read and return the command associated with a process
